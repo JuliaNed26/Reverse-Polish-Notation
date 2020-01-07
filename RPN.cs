@@ -8,131 +8,139 @@ namespace Reverse_Polish_Notation
 {
     public class RPN
     {
-        private readonly List<string> _allOperations;
-        private readonly List<string> _brackets;
+        private readonly Dictionary<char,int> _allOperations;
 
         public RPN()
         {
-            _allOperations==new List<string>(){"/","-","+","*","^"};
-            _brackets = new List<String>() { "(", ")" };
+            _allOperations= new Dictionary<char, int>
+                {{'/', 1}, {'-', 0}, {'+', 0}, {'*', 1}, {'^', 2}, {'(', -1}, {')', -1}}; ;
         }
 
-        public double Calculate(string expression)
+        public double PolishExpression(string expression)
         {
-            List<double> numbers = new List<double>();
-            List<string> operations = new List<string>();
-            string previousSymbol="";
 
-            for(int i=0;i<expression.Length;i++)
+
+            string polishExpression = "";
+            string operationsQueue = "";
+            string number = "";
+
+            for (int i = 0; i < expression.Length; i++)
             {
-                string symbol= expression[i].ToString();
+                char symbol = expression[i];
 
-                if(!_allOperations.Contains(symbol)&&!_brackets.Contains(symbol))
+                if (_allOperations.ContainsKey(symbol)) //if symbol is operation
                 {
-                    try
+                    if (number != "") //add number to polish expression
                     {
-                        if (!_allOperations.Contains(previousSymbol) && _brackets.Contains(previousSymbol) &&
-                            previousSymbol != "")
-                        {
-                            symbol = previousSymbol + symbol;
-                        }
-                        numbers.Add(Convert.ToDouble(symbol));
-                        continue;
+                        polishExpression += number + " ";
+                        number = "";
                     }
-                    catch
+
+                    else if (symbol != '(' && (i != 0 && expression[i - 1] != ')')) //operation can't stay before number
                     {
                         throw new Exception("Wrong expression");
                     }
-                }//adding numbers
 
-                else
-                {
-                    if (_allOperations.Contains(previousSymbol))
+                    if (operationsQueue == "" || _allOperations[operationsQueue.Last()] < _allOperations[symbol] || symbol == '(') //add operation to the queue of operations
                     {
-                        throw new Exception("Wrong expression");
-                    }//if previous symbol is operation too
+                        operationsQueue += symbol;
+                    }
 
-                    else
+                    else if (symbol != ')') //push last operation into polish expression
                     {
-                        if(Prioritization(operations.Last<string>(),symbol)==1)
+                        polishExpression += operationsQueue.Last() + " ";
+                        operationsQueue = operationsQueue.Remove(operationsQueue.Length - 1) + symbol;
+                    }
+
+                    else//push only operations in brackets
+                    {
+                        string forPushing = operationsQueue.Remove(0, operationsQueue.IndexOf('(') + 1);
+                        operationsQueue = operationsQueue.Remove(operationsQueue.IndexOf('('));
+
+                        for (int k = forPushing.Length - 1; k >= 0; k--) //push operations in reverse order
                         {
-                            operations.Add(symbol);
-                        }//adding operation,if it's preoritization==1
-
-                        else
-                        {
-                            if (symbol != ")")
-                            {
-                                numbers.Add(CalculateResultOfAnOperation(operations.Last(),numbers[numbers.Count-2],numbers.Last()));
-                                numbers.RemoveRange(numbers.Count - 3, 2);
-                                operations.RemoveAt(operations.Count - 1);
-                                operations.Add(symbol);
-                            }//calculate operation
-
-                            else
-                            {
-                                while (operations.Last<string>() != "(")
-                                {
-                                    numbers.Add(CalculateResultOfAnOperation(operations.Last(), numbers[numbers.Count - 2], numbers.Last()));
-                                    numbers.RemoveRange(numbers.Count - 3, 2);
-                                    operations.RemoveAt(operations.Count - 1);
-                                }
-
-                                operations.RemoveAt(operations.Count - 1);
-                            }//calculate while operation!=(
-
+                            polishExpression += forPushing[k] + " ";
                         }
                     }
                 }
 
-                previousSymbol = symbol;
+                else //create number
+                {
+                    number += symbol;
+                }
 
-            }//expression's symbol parse into operation or number
+                if (i == expression.Length - 1)
+                {
+                    polishExpression += number + " ";
 
-            while(numbers.Count!=1)
+                    for (int k = operationsQueue.Length - 1; k >= 0; k--)
+                    {
+                        polishExpression += operationsQueue[k] + " ";
+                    }
+                }
+            }
+
+
+            return polishExpression.Remove(polishExpression.Length - 1);
+        }
+
+
+        public double Calculate(string expression)
+        {
+            string number = "";
+            List<double> numbers = new List<double>();
+
+            foreach (char symbol in expression)
             {
-                numbers.Add(CalculateResultOfAnOperation(operations.Last(), numbers[numbers.Count - 2], numbers.Last()));
-                numbers.RemoveRange(numbers.Count - 3, 2);
-                operations.RemoveAt(operations.Count - 1);
-            }//if operations aren't ended, calculations
+                if (symbol == ' ' && number != "")
+                {
+                    numbers.Add(Convert.ToDouble(number));
+                    number = "";
+                }
+
+                if (symbol != ' ')
+                {
+                    if (!_allOperations.ContainsKey(symbol))
+                    {
+                        number += symbol;
+                    }
+                    else
+                    {
+                        double result =
+                            CalculateResultOfAnOperation(symbol, numbers[numbers.Count - 2],
+                                numbers[numbers.Count - 1]);
+                        numbers.RemoveRange(numbers.Count - 2, 2);
+                        numbers.Add(result);
+                    }
+                }
+            }
 
             return numbers[0];
         }
 
-        private int Prioritization(string lastOperation="",string operation)
-        {
-                    if (((lastOperation == "-" || lastOperation == "+") &&
-                        (operation == "/" || operation == "^" || operation == "*"))
-                        || operation == "("|| lastOperation == "("||lastOperation=="")
-                    {
-                        return 1;
-                    }
-                    return 0;
-        }
-
-        private double CalculateResultOfAnOperation(string operation,double firsNumber,double secondNumber)
+        private double CalculateResultOfAnOperation(char operation,double firsNumber,double secondNumber)
         {
             double result = 0;
 
             switch (operations.Last<string>())
             {
-                case "-":
+                case '-':
                     result = firstNumber - secondNumber;
                     break;
 
-                case "+":
+                case '+':
                     result = firstNumber + secondNumber;
                     break;
 
-                case "/":
+                case '/':
                     result = firstNumber / secondNumber;
                     break;
 
-                case "*":
+                case '*':
                     result = firstNumber * secondNumber;
                     break;
 
-                case "^":
+                case '^':
                     result = Math.Pow(firstNumber,secondNumber);
                     break;
             }

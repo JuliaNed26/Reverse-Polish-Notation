@@ -19,7 +19,8 @@ namespace Calculator
 
         private void calculationButton_Click(object sender, EventArgs e)
         {
-            result.Text = new Reverse_Polish_Notation.RPN().Calculate(expression.Text).ToString();
+            var calculator = new Calculator.RPN();
+            result.Text = calculator.Calculate(calculator.PolishExpression(expression.Text)).ToString();
         }
     }
 }
